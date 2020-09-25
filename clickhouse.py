@@ -36,14 +36,19 @@ def get_clickhouse_data(query, host=CH_HOST):
 
 def upload(table, content, host=CH_HOST):
     '''Uploads data to table in ClickHous'''
+    prefixes = ['ym:s:', 'ym:pv:']
+    for prefix in prefixes:
+        content = content.replace(prefix, '')
+    content = content[content.find('\n') + 1 :]
     content = content.encode('utf-8')
+
     query_dict = {
-             'query': 'INSERT INTO ' + table + ' FORMAT TabSeparatedWithNames '
+             'query': f'INSERT INTO {table} FORMAT TabSeparated '
         }
     if (CH_USER == '') and (CH_PASSWORD == ''):
         r = requests.post(host, data=content, params=query_dict, verify=SSL_VERIFY)
     else:
-        r = requests.post(host, data=content, params=query_dict, 
+        r = requests.post(host, data=content, params=query_dict,
                           auth=(CH_USER, CH_PASSWORD), verify=SSL_VERIFY)
     result = r.text
     if r.status_code == 200:
@@ -129,7 +134,7 @@ def create_table(source, fields):
             engine = 'Log'
 
     ch_field_types = utils.get_ch_fields_config()
-    ch_fields = map(get_ch_field_name, fields)
+    ch_fields = list(map(get_ch_field_name, fields))
     
     for i in range(len(fields)):
         field_statements.append(field_tmpl.format(name= ch_fields[i],
